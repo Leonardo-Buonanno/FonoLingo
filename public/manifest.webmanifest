@@ -1,0 +1,17 @@
+{
+  "name": "FonoLingo",
+  "short_name": "FonoLingo",
+  "description": "Aprendizagem gamificada em Fonoaudiologia",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#17130f",
+  "theme_color": "#f36f21",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

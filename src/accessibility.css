@@ -1,0 +1,432 @@
+/* Keep pastel surfaces while making supporting text readable. */
+.sidebar {
+  overflow-y: auto;
+}
+.hotspot-stage {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  cursor: crosshair;
+  background: #f2f2f5;
+  margin: 0 0 22px;
+}
+.hotspot-stage img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.hotspot-choice {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  background: #c2410c;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 7px #0007;
+}
+.hotspot-answer {
+  position: absolute;
+  border: 3px solid #5f936f;
+  background: #86b39455;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 26px;
+  min-height: 26px;
+}
+.avatar,
+.avatar.small {
+  color: #6c554a;
+}
+.main-shell .stat-card strong small {
+  color: #706675;
+}
+.sidebar .workspace-label {
+  color: #aaaabd;
+}
+.sidebar .sidebar-user small {
+  color: #ababbd;
+}
+.stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.mini-bars {
+  font-size: 22px;
+  letter-spacing: 0;
+  max-width: 60px;
+  overflow: hidden;
+}
+.loading-state {
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #71637e;
+}
+.main-shell .back-link,
+.main-shell .segmented button,
+.main-shell .custom-count input {
+  color: #71607f;
+}
+.main-shell .segmented button.selected {
+  color: #fff;
+}
+.main-shell p,
+.main-shell .date,
+.main-shell .greeting,
+.main-shell .eyebrow,
+.main-shell .breadcrumbs,
+.main-shell .breadcrumbs strong,
+.main-shell .status-pill,
+.main-shell .stat-card > div > span,
+.main-shell .stat-note,
+.main-shell .hero-copy > p,
+.main-shell .hero-eyebrow,
+.main-shell .hero-foot,
+.main-shell .suggestions > span,
+.main-shell .suggestions button,
+.main-shell .category-card p,
+.main-shell .category-tag,
+.main-shell .subtle-label,
+.main-shell .daily-top > span:first-child,
+.main-shell .daily-meta,
+.main-shell .daily-reward,
+.main-shell .weekly-card > small,
+.main-shell .goal-label,
+.main-shell .goal-label strong,
+.main-shell .week-days > div > span:first-child,
+.main-shell .day-circle,
+.main-shell .continue-content small,
+.main-shell .text-link,
+.main-shell .learning-banner p,
+.main-shell .info-line,
+.main-shell .field-hint,
+.main-shell .mode-option > span,
+.main-shell .custom-count,
+.main-shell .generation-info p,
+.main-shell .question-meta > span:last-child,
+.main-shell .question-actions > span,
+.main-shell .game-note,
+.main-shell .source-link,
+.main-shell .concept-row span,
+.main-shell .result-stats span,
+.main-shell .achievement-card > small,
+.main-shell .level-card > strong small,
+.main-shell .auth-form small,
+.main-shell .guest-link,
+.main-shell .review-body p,
+.main-shell .feedback-panel p,
+.main-shell .feedback-panel li,
+.main-shell .history-item span:not(.icon-box):not(.tag),
+.main-shell footer,
+.main-shell footer > span:nth-child(2) {
+  color: #6e647a;
+}
+.main-shell .study-input input::placeholder,
+.main-shell .text-input::placeholder,
+.main-shell textarea::placeholder {
+  color: #7a6f84;
+}
+.main-shell .purple.tag {
+  color: #7c2d12;
+}
+.main-shell .green.tag {
+  color: #4e715d;
+}
+.main-shell .orange.tag {
+  color: #916738;
+}
+.main-shell .tag.neutral {
+  color: #6c6574;
+}
+.main-shell .daily-card > p,
+.main-shell .daily-meta,
+.main-shell .daily-reward,
+.main-shell .daily-top > span:first-child {
+  color: #506e5c;
+}
+.main-shell .daily-card .btn {
+  background: #5d7b67;
+}
+.main-shell .day-circle.done {
+  background: #c2410c;
+  color: white;
+}
+.main-shell .result-stats strong,
+.main-shell .level-card > strong {
+  color: #9a3412;
+}
+.main-shell .field-label {
+  color: #9a3412;
+}
+.main-shell .feedback-panel.success {
+  color: #4b745a;
+}
+.main-shell .feedback-panel {
+  color: #7b693f;
+}
+@media (max-height: 850px) {
+  .journey-card {
+    display: none;
+  }
+  .sidebar-bottom {
+    padding-top: 24px;
+  }
+}
+@media (max-width: 420px) {
+  .dashboard-right {
+    grid-template-columns: 1fr;
+  }
+  .daily-card {
+    grid-row: auto;
+    padding: 24px;
+  }
+  .daily-top > span:first-child {
+    font-size: 9px;
+  }
+  .daily-card h2 {
+    font-size: 24px;
+  }
+  .daily-card > p {
+    font-size: 12px;
+  }
+  .daily-meta {
+    font-size: 11px;
+  }
+  .daily-card .btn {
+    font-size: 12px;
+  }
+  .daily-reward {
+    font-size: 10px;
+  }
+  .weekly-card,
+  .continue-card {
+    padding: 22px;
+  }
+  .weekly-card .section-heading h3,
+  .continue-card .section-heading h3 {
+    font-size: 13px;
+  }
+  .weekly-card > p,
+  .weekly-card > small,
+  .goal-label,
+  .goal-label strong {
+    font-size: 11px;
+  }
+  .day-circle {
+    width: 29px;
+    height: 29px;
+    font-size: 10px;
+  }
+  .week-days > div > span:first-child {
+    font-size: 10px;
+  }
+  .continue-content strong {
+    font-size: 13px;
+  }
+  .continue-content small,
+  .continue-card .text-link {
+    font-size: 11px;
+  }
+}
+.review-summary {
+  padding: 24px;
+  margin-bottom: 22px;
+}
+.review-summary > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.review-summary h2 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.review-summary p {
+  font-size: 11px;
+}
+.review-calendar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-top: 20px;
+}
+.review-calendar span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #f7f5f9;
+  border-radius: 7px;
+  color: #6e647a;
+  font-size: 10px;
+}
+.review-calendar strong {
+  color: #775f8d;
+  font-size: 9px;
+}
+.review-calendar .due {
+  background: #f8eee2;
+}
+@media (max-width: 600px) {
+  .review-calendar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.library-summary {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.library-summary > div {
+  flex: 1;
+}
+.library-summary h2 {
+  font-size: 17px;
+}
+.library-summary p {
+  font-size: 11px;
+}
+.library-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.library-filters label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 13px;
+  flex: 1;
+}
+.library-filters input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  font-size: 12px;
+}
+.library-filters select {
+  width: 220px;
+}
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+.library-item {
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+}
+.library-item img {
+  width: 100%;
+  aspect-ratio: 16/10;
+  object-fit: cover;
+  display: block;
+  background: #eee;
+}
+.library-item > div {
+  padding: 14px;
+}
+.library-item h3 {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 9px 0 4px;
+}
+.library-item p {
+  font-size: 9px;
+}
+.library-modal {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: auto;
+}
+.library-modal > img {
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+  margin-bottom: 18px;
+}
+.library-modal .hash {
+  font-family: monospace;
+  font-size: 8px;
+  overflow-wrap: anywhere;
+}
+.library-modal .btn {
+  margin-top: 15px;
+}
+@media (max-width: 850px) {
+  .library-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 500px) {
+  .library-filters {
+    flex-direction: column;
+  }
+  .library-filters select {
+    width: 100%;
+  }
+  .library-grid {
+    grid-template-columns: 1fr;
+  }
+  .library-summary {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* Keep the accessible contrast rules aligned with the orange identity. */
+.main-shell .daily-card .btn,
+.main-shell .day-circle.done {
+  background: #c2410c;
+  color: #fff;
+}
+.main-shell .daily-card .btn:hover:not(:disabled) {
+  background: #9a3412;
+}
+.main-shell .segmented button.selected {
+  background: #c2410c;
+  color: #fff;
+}
+.main-shell .mode-option.selected,
+.main-shell .answer-option.chosen {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #7c2d12;
+}
+.main-shell .result-stats strong,
+.main-shell .level-card > strong,
+.main-shell .field-label,
+.main-shell .text-link {
+  color: #9a3412;
+}
+
+.main-shell .daily-card h2,
+.main-shell .daily-card > p,
+.main-shell .daily-card .daily-meta,
+.main-shell .daily-card .daily-reward,
+.main-shell .daily-card .daily-top > span:first-child {
+  color: #fff8f2;
+}
+.main-shell .daily-card .daily-top > span:first-child,
+.main-shell .hero h2,
+.main-shell .hero h2 em,
+.main-shell .hero-copy > p,
+.main-shell .hero-eyebrow,
+.main-shell .hero-foot {
+  color: #17130f;
+}
+.main-shell .daily-card .btn {
+  background: #f36f21;
+  color: #17130f;
+}
