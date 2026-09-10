@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -31,7 +31,7 @@ import {
   weaknesses,
 } from "../../shared/scoring.mjs";
 
-import { useApp } from "../state/context";
+import { api, useApp } from "../state/context";
 import {
   Button,
   Tag,
@@ -276,10 +276,38 @@ export function Knowledge() {
 }
 
 export function Revision() {
-  const { state, setState } = useApp();
+  const { state, setState, ai } = useApp();
   const navigate = useNavigate();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const schedule = reviewSchedule(state.history);
   const due = schedule.filter(item => item.due);
+  const recovered = schedule.filter(item => item.recovered).length;
+  const recurring = schedule.filter(item => item.recurring).length;
+  async function startReview(item: (typeof schedule)[number], original = false) {
+    if (busy || state.active) return;
+    setError("");
+    setBusy(JSON.stringify([item.topic, item.concept]));
+    try {
+      const questions = reviewQuestions(state.history, item.topic, item.concept, original ? 5 : 60);
+      const data = original ? { questions, summary: "Questões do seu histórico." } : await api("generate", {
+        topic: item.topic, mode: "Revisar", difficulty: "Médio", count: 5,
+        reviewConcepts: [item.concept], exclude: questions.map(question => question.prompt),
+      });
+      if (!mounted.current) return;
+      setState(previous => previous.active ? previous : ({ ...previous, active: {
+        id: crypto.randomUUID(), topic: item.topic, mode: "Revisão espaçada", difficulty: "Médio",
+        questions: data.questions, answers: [], started: Date.now(), provider: "ai", summary: data.summary,
+      } }));
+      navigate("/jogo");
+    } catch (error) {
+      if (mounted.current) setError((error as Error).message);
+    } finally {
+      if (mounted.current) setBusy(null);
+    }
+  }
   return (
     <>
       <PageHeading
@@ -287,6 +315,15 @@ export function Revision() {
         title="Revisão espaçada"
         description="Seus erros e respostas parciais viram revisões. Acerte na data prevista para ampliar o intervalo; uma nova dificuldade traz o conceito de volta em 1 dia."
       />
+      {schedule.length > 0 && (
+        <div className="result-stats card" aria-label="Progresso das revisões">
+          <div><strong>{recovered}</strong><span>Conceitos recuperados</span></div>
+          <div><strong>{recurring}</strong><span>Com erros recorrentes</span></div>
+          <div><strong>{due.length}</strong><span>Para revisar agora</span></div>
+        </div>
+      )}
+      {schedule.length > 0 && <p className="field-hint">Recuperado: dois acertos em sessões a partir da data agendada, desde a última dificuldade. Recorrente: dificuldades em duas ou mais sessões, ainda sem recuperação. Indicadores do histórico salvo; incluem autoavaliações.</p>}
+      {error && <p className="error-message" role="alert">{error} Tente novamente ou pratique com as questões anteriores.</p>}
       {schedule.length > 0 && (
         <div className="review-summary card">
           <div>
@@ -319,21 +356,17 @@ export function Revision() {
                 <div>
                   <Tag color={item.due ? "orange" : "green"}>{item.due ? "Revisão disponível" : "Agendada"}</Tag>
                   <h2>{item.concept}</h2>
+                  <p>{item.recovered ? "Conceito recuperado" : item.recurring ? "Erros recorrentes" : "Em recuperação"} · {item.lapses} {item.lapses === 1 ? "sessão com dificuldade" : "sessões com dificuldade"}</p>
                   <p>{item.topic} · Última tentativa: {Math.round(item.lastScore * 100)}%</p>
                   <p>Próxima revisão: {new Date(item.dueAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · Intervalo: {item.interval} {item.interval === 1 ? "dia" : "dias"}</p>
                 </div>
-                <Button disabled={!!state.active} onClick={() => {
-                  const questions = reviewQuestions(state.history, item.topic, item.concept);
-                  if (!questions.length) return;
-                  setState(previous => ({ ...previous, active: {
-                    id: crypto.randomUUID(), topic: item.topic, mode: "Revisão espaçada",
-                    difficulty: "Médio", questions, answers: [], started: Date.now(),
-                    provider: "ai", summary: "Revisão de questões do seu histórico, priorizando dificuldades.",
-                  } }));
-                  navigate("/jogo");
-                }}>
-                  {item.due ? "Revisar agora" : "Treinar antes da data"}<ArrowRight size={16} />
-                </Button>
+                <div className="review-practice-actions">
+                  <Button disabled={!!state.active || !!busy || !ai} onClick={() => startReview(item)}>
+                    {busy === JSON.stringify([item.topic, item.concept]) ? "Preparando perguntas…" : item.due ? "Revisar com perguntas novas" : "Antecipar com perguntas novas"}<ArrowRight size={16} />
+                  </Button>
+                  <button className="text-link" disabled={!!state.active || !!busy} onClick={() => startReview(item, true)}>Praticar questões anteriores</button>
+                  {!ai && <small>Novas perguntas indisponíveis. Você pode praticar as anteriores.</small>}
+                </div>
               </div>
             ))}
           </div>

@@ -22,4 +22,6 @@ O cadastro aceita vários e-mails, com progresso, sessões e limite diário de I
 
 Erros e respostas parciais em sessões concluídas agendam o conceito para 1 dia depois. Acertos a partir do vencimento ampliam o intervalo para 3, 7, 14 e 30 dias; novos erros reiniciam em 1 dia. Cada sessão conta uma tentativa por conceito, considerando a menor nota; acertos antecipados mantêm a data. O agendamento usa o histórico salvo da conta, inclusive sessões anteriores.
 
-A página de revisão retoma até 5 questões do conceito no histórico, priorizando erros recentes. Não exige nova geração de questões; respostas abertas usam a avaliação existente ou autoavaliação. O painel, o menu e os resultados mostram as revisões.
+A revisão oferece 5 perguntas novas sobre o mesmo conceito, geradas por IA, com exclusão de até 60 enunciados anteriores. O servidor valida os conceitos e rejeita enunciados repetidos após normalização; equivalência semântica depende da geração. A opção de praticar até 5 questões anteriores permanece disponível, inclusive quando a geração falha. Respostas abertas usam a avaliação existente ou autoavaliação.
+
+Os indicadores mostram conceitos recuperados após dois acertos em sessões a partir do vencimento desde a última dificuldade. Erros recorrentes são dificuldades em pelo menos duas sessões no histórico, sem recuperação atual. Uma nova dificuldade remove o estado recuperado. Todos os indicadores usam o histórico salvo, incluindo autoavaliações.

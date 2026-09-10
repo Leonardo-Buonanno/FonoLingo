@@ -430,3 +430,8 @@
   background: #f36f21;
   color: #17130f;
 }
+
+.revision-card .review-practice-actions { display: flex; flex-direction: column; gap: 12px; flex: 0 1 280px; }
+.review-practice-actions small { color: var(--muted); }
+ .revision-card .review-practice-actions .btn { margin-left: 0; }
+@media (max-width: 760px) { .revision-card .review-practice-actions { flex: 0 0 100%; width: 100%; } }

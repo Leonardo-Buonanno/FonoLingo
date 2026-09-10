@@ -98,6 +98,8 @@ export function reviewSchedule(history, now = Date.now()) {
         lastScore: attempt.score,
         lapses: (previous?.lapses || 0) + Number(failed),
         attempts: (previous?.attempts || 0) + 1,
+        recovered: step >= 2,
+        recurring: (previous?.lapses || 0) + Number(failed) >= 2 && step < 2,
       });
     }
   }

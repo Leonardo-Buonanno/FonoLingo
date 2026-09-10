@@ -18,6 +18,7 @@ test("Netlify recovery sends once, hides unknown accounts and atomically consume
   };
   const hooks = registerHooks({
     resolve(specifier, context, next) {
+      if (specifier === "@google/genai") return { url: "data:text/javascript,export class GoogleGenAI { models = { generateContent: async () => ({ text: JSON.stringify(globalThis.__reviewTestGeneration) }) }; }", shortCircuit: true };
       if (specifier === "@netlify/blobs") return { url: "data:text/javascript,export const getStore = () => globalThis.__recoveryTestStore;", shortCircuit: true };
       return next(specifier, context);
     },
@@ -104,10 +105,27 @@ test("Netlify recovery sends once, hides unknown accounts and atomically consume
     assert.deepEqual(legacyLogin.body.state, legacyState);
     assert.equal((await call("me", undefined, legacyCookie)).body, null);
     assert.equal((await call("me", undefined, login.cookie)).body.email, account.email);
+    process.env.GEMINI_API_KEY = "test-only";
+    globalThis.__reviewTestGeneration = { topic: "Renamed topic", summary: "Resumo da revisão.", questions: [{
+      id: "generated", type: "choice", prompt: "Como a língua conduz o bolo na fase oral?",
+      options: ["Elevação", "Audição"], answer: "Elevação", explanation: "A língua participa do transporte oral.",
+      tip: "Pense na fase oral.", concept: "degluticao", source: "", rubric: [],
+    }] };
+    const config = { topic: "Disfagia", mode: "Revisar", difficulty: "Médio", count: 1, reviewConcepts: ["Deglutição"], exclude: ["Qual a função da língua?"] };
+    const generated = await call("generate", config, login.cookie);
+    assert.equal(generated.status, 200);
+    assert.equal(generated.body.topic, "Disfagia");
+    assert.equal(generated.body.questions[0].concept, "Deglutição");
+    globalThis.__reviewTestGeneration.questions[0].prompt = config.exclude[0];
+    assert.equal((await call("generate", config, login.cookie)).status, 502);
+    globalThis.__reviewTestGeneration.questions[0].prompt = "Como perceber um som?";
+    globalThis.__reviewTestGeneration.questions[0].concept = "Audição";
+    assert.equal((await call("generate", config, login.cookie)).status, 502);
   } finally {
     globalThis.fetch = originalFetch;
     process.env = previousEnv;
     hooks.deregister();
     delete globalThis.__recoveryTestStore;
+    delete globalThis.__reviewTestGeneration;
   }
 });

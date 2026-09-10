@@ -70,3 +70,20 @@ test("practice selects original questions from this concept and prioritizes late
   assert.deepEqual(history, snapshot);
   assert.deepEqual(reviewQuestions(history, "Voz", "Sem histórico"), []);
 });
+
+test("recovery requires two spaced successes; recurring errors are counted by session", () => {
+  const history = [session(0, [0, 0]), session(1, [0.5]), session(2, [1])];
+  let review = reviewSchedule(history)[0];
+  assert.equal(review.lapses, 2);
+  assert.equal(review.recurring, true);
+  assert.equal(review.recovered, false);
+  history.push(session(3, [1]));
+  assert.equal(reviewSchedule(history)[0].recovered, false);
+  history.push(session(5, [1]));
+  review = reviewSchedule(history)[0];
+  assert.equal(review.recovered, true);
+  assert.equal(review.recurring, false);
+  history.push(session(6, [0]));
+  assert.equal(reviewSchedule(history)[0].recovered, false);
+  assert.equal(reviewSchedule(history)[0].recurring, true);
+});
