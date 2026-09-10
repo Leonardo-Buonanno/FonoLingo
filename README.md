@@ -17,3 +17,9 @@ Execute `npm run build` para validar a aplicação e `node --test tests/*.test.m
 ## Contas independentes
 
 O cadastro aceita vários e-mails, com progresso, sessões e limite diário de IA por conta. No Netlify, a conta anterior permanece em `primary-user`, preservando seu ID, progresso e acessos existentes. Novas contas ficam em `users/<hash do e-mail normalizado>`; índices de sessão e recuperação apontam para a conta correspondente. E-mails repetidos são recusados atomicamente.
+
+## Revisão espaçada
+
+Erros e respostas parciais em sessões concluídas agendam o conceito para 1 dia depois. Acertos a partir do vencimento ampliam o intervalo para 3, 7, 14 e 30 dias; novos erros reiniciam em 1 dia. Cada sessão conta uma tentativa por conceito, considerando a menor nota; acertos antecipados mantêm a data. O agendamento usa o histórico salvo da conta, inclusive sessões anteriores.
+
+A página de revisão retoma até 5 questões do conceito no histórico, priorizando erros recentes. Não exige nova geração de questões; respostas abertas usam a avaliação existente ou autoavaliação. O painel, o menu e os resultados mostram as revisões.

@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 
-import { accuracy, dayKey, streak } from "../../shared/scoring.mjs";
+import { accuracy, dayKey, streak, reviewSchedule } from "../../shared/scoring.mjs";
 
 import { useApp } from "../state/context";
 import { Button, Tag, Progress, BrainArt } from "../components/ui";
@@ -34,6 +34,8 @@ export function Dashboard() {
     .filter((s) => dayKey(s.finished!) === today)
     .reduce((n, s) => n + s.answers.length, 0);
   const last = state.history[0];
+  const reviews = reviewSchedule(state.history);
+  const dueReviews = reviews.filter(item => item.due);
   return (
     <>
       <div className="welcome-row">
@@ -166,6 +168,14 @@ export function Dashboard() {
           </div>
         </div>
         <aside className="dashboard-right">
+          {reviews.length > 0 && (
+            <section className="continue-card card">
+              <div className="section-heading"><h3>Revisão espaçada</h3><CalendarDays size={19} /></div>
+              <p>{dueReviews.length ? `${dueReviews.length} conceito(s) para revisar agora.` : `Próxima revisão: ${new Date(reviews[0].dueAt).toLocaleDateString("pt-BR")}.`}</p>
+              <p>Retome suas dificuldades e acompanhe os próximos intervalos.</p>
+              <Button secondary onClick={() => navigate("/revisao")}>{dueReviews.length ? "Revisar meus erros" : "Ver agendamento"}<ArrowRight size={16} /></Button>
+            </section>
+          )}
           <section className="daily-card">
             <div className="daily-top">
               <span>

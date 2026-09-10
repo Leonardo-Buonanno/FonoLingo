@@ -26,6 +26,7 @@ import type { Session } from "../types";
 import {
   accuracy,
   reviewSchedule,
+  reviewQuestions,
   streak,
   weaknesses,
 } from "../../shared/scoring.mjs";
@@ -53,6 +54,7 @@ export function Results() {
     );
   const errors = s.answers.filter((a) => a.score < 1);
   const score = accuracy(s.answers);
+  const nextReviews = reviewSchedule(state.history).filter(item => item.topic === s.topic);
   const concepts = [...new Set(s.answers.map((a) => a.question.concept))];
   return (
     <div className="narrow result-page">
@@ -128,6 +130,16 @@ export function Results() {
           </p>
         </div>
       </div>
+      {nextReviews.length > 0 && (
+        <div className="card results-details">
+          <h2>Suas próximas revisões</h2>
+          <p>Agendamento atualizado com suas respostas.</p>
+          {nextReviews.map(item => (
+            <p key={item.concept}><strong>{item.concept}</strong> · {item.due ? "Disponível agora" : new Date(item.dueAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
+          ))}
+          <button className="text-link" onClick={() => navigate("/revisao")}>Ver revisões<ArrowRight size={16} /></button>
+        </div>
+      )}
       <div className="result-actions">
         {errors.length > 0 && (
           <Button
@@ -264,111 +276,68 @@ export function Knowledge() {
 }
 
 export function Revision() {
-  const { state, setConfig } = useApp();
+  const { state, setState } = useApp();
   const navigate = useNavigate();
-  const weak = weaknesses(state.history);
   const schedule = reviewSchedule(state.history);
-  const due = schedule.filter((item) => item.due);
+  const due = schedule.filter(item => item.due);
   return (
     <>
       <PageHeading
         eyebrow="REVER TAMBÉM É AVANÇAR"
-        title="Revisão inteligente"
-        description="Dê uma nova chance aos conceitos que ainda estão se conectando."
+        title="Revisão espaçada"
+        description="Seus erros e respostas parciais viram revisões. Acerte na data prevista para ampliar o intervalo; uma nova dificuldade traz o conceito de volta em 1 dia."
       />
       {schedule.length > 0 && (
         <div className="review-summary card">
           <div>
-            <span className="icon-box purple">
-              <CalendarDays />
-            </span>
+            <span className="icon-box purple"><CalendarDays /></span>
             <div>
-              <h2>
-                {due.length}{" "}
-                {due.length === 1
-                  ? "revisão disponível"
-                  : "revisões disponíveis"}
-              </h2>
-              <p>
-                O intervalo aumenta quando você demonstra domínio e diminui após
-                dificuldades.
-              </p>
+              <h2>{due.length} {due.length === 1 ? "conceito para revisar agora" : "conceitos para revisar agora"}</h2>
+              <p>Intervalos: 1, 3, 7, 14 e 30 dias. Treinar antes da data mantém o agendamento após um acerto.</p>
             </div>
           </div>
           <div className="review-calendar">
-            {schedule.slice(0, 6).map((item) => (
-              <span
-                key={item.topic + item.concept}
-                className={item.due ? "due" : ""}
-              >
-                <strong>{item.due ? "Hoje" : `em ${item.daysUntil}d`}</strong>
+            {schedule.slice(0, 6).map(item => (
+              <span key={JSON.stringify([item.topic, item.concept])} className={item.due ? "due" : ""}>
+                <strong>{item.due ? "Disponível" : new Date(item.dueAt).toLocaleDateString("pt-BR")}</strong>
                 {item.concept}
               </span>
             ))}
           </div>
         </div>
       )}
-      {!weak.length && !due.length ? (
-        <Empty
-          icon={CircleCheck}
-          title={
-            state.history.length
-              ? "Nenhum conceito pendente por aqui."
-              : "Vamos conhecer seus pontos de partida."
-          }
-          description={
-            state.history.length
-              ? "Continue praticando para aprofundar seu conhecimento."
-              : "Após estudar, seus conceitos com aproveitamento abaixo de 80% aparecem aqui."
-          }
-        />
+      {!schedule.length ? (
+        <Empty icon={CircleCheck} title="Nenhuma revisão agendada."
+          description="Conclua uma sessão. Conceitos com erros ou respostas parciais aparecerão aqui automaticamente." />
       ) : (
-        <div className="revision-list">
-          {(due.length
-            ? due.map((item) => ({
-                ...item,
-                accuracy: Math.round(item.lastScore * 100),
-                count: 1,
-              }))
-            : weak
-          ).map((w) => (
-            <div className="card revision-card" key={w.topic + w.concept}>
-              <span className="icon-box orange">
-                <Target />
-              </span>
-              <div>
-                <Tag color="orange">Vale reforçar · {w.accuracy}%</Tag>
-                <h2>{w.concept}</h2>
-                <p>
-                  {w.topic} · {w.count}{" "}
-                  {w.count === 1
-                    ? "resposta registrada"
-                    : "respostas registradas"}
-                </p>
+        <>
+          {state.active && <p className="field-hint">Você tem uma sessão em andamento. Conclua-a antes de iniciar uma revisão. <button className="text-link" onClick={() => navigate("/jogo")}>Retomar sessão</button></p>}
+          <div className="revision-list">
+            {schedule.map(item => (
+              <div className="card revision-card" key={JSON.stringify([item.topic, item.concept])}>
+                <span className="icon-box orange"><Target /></span>
+                <div>
+                  <Tag color={item.due ? "orange" : "green"}>{item.due ? "Revisão disponível" : "Agendada"}</Tag>
+                  <h2>{item.concept}</h2>
+                  <p>{item.topic} · Última tentativa: {Math.round(item.lastScore * 100)}%</p>
+                  <p>Próxima revisão: {new Date(item.dueAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · Intervalo: {item.interval} {item.interval === 1 ? "dia" : "dias"}</p>
+                </div>
+                <Button disabled={!!state.active} onClick={() => {
+                  const questions = reviewQuestions(state.history, item.topic, item.concept);
+                  if (!questions.length) return;
+                  setState(previous => ({ ...previous, active: {
+                    id: crypto.randomUUID(), topic: item.topic, mode: "Revisão espaçada",
+                    difficulty: "Médio", questions, answers: [], started: Date.now(),
+                    provider: "ai", summary: "Revisão de questões do seu histórico, priorizando dificuldades.",
+                  } }));
+                  navigate("/jogo");
+                }}>
+                  {item.due ? "Revisar agora" : "Treinar antes da data"}<ArrowRight size={16} />
+                </Button>
               </div>
-              <Button
-                onClick={() => {
-                  setConfig({
-                    topic: w.topic,
-                    mode: "Dificuldades",
-                    difficulty: "Médio",
-                    count: 5,
-                    reviewConcepts: [w.concept],
-                    exclude: state.history
-                      .flatMap((s) => s.questions)
-                      .filter((q) => q.concept === w.concept)
-                      .slice(0, 60)
-                      .map((q) => q.prompt),
-                  });
-                  navigate("/configurar");
-                }}
-              >
-                Treinar conceito
-                <ArrowRight size={16} />
-              </Button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </>
   );

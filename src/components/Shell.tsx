@@ -19,7 +19,7 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { weaknesses } from "../../shared/scoring.mjs";
+import { reviewSchedule } from "../../shared/scoring.mjs";
 
 import { useApp } from "../state/context";
 import { Brand } from "../components/ui";
@@ -33,12 +33,13 @@ export function Shell({ children }: { children: ReactNode }) {
     window.scrollTo(0, 0);
   }, [loc.pathname]);
   const xp = state.history.reduce((n, s) => n + (s.xp || 0), 0);
+  const dueReviews = reviewSchedule(state.history).filter(item => item.due).length;
   const level = Math.floor(xp / 500) + 1;
   const nav = [
     ["/dashboard", "Visão geral", House],
     ["/estudar", "Começar a estudar", BookOpen],
     ["/progresso", "Meu conhecimento", Brain],
-    ["/revisao", "Revisão inteligente", RotateCcw],
+    ["/revisao", "Revisão espaçada", RotateCcw],
     ["/historico", "Histórico de estudos", History],
     ["/conquistas", "Conquistas", Trophy],
     ["/biblioteca", "Biblioteca anatômica", Images],
@@ -68,9 +69,9 @@ export function Shell({ children }: { children: ReactNode }) {
               <Icon size={19} />
               <span>{label}</span>
               {i === 1 && <span className="nav-plus">+</span>}
-              {i === 3 && weaknesses(state.history).length > 0 && (
+              {i === 3 && dueReviews > 0 && (
                 <span className="nav-count">
-                  {weaknesses(state.history).length}
+                  {dueReviews}
                 </span>
               )}
             </NavLink>
@@ -136,8 +137,8 @@ export function Shell({ children }: { children: ReactNode }) {
               aria-label="Ver lembretes de estudo"
               onClick={() =>
                 toast(
-                  weaknesses(state.history).length
-                    ? "Você tem conceitos para revisar. Acesse Revisão inteligente."
+                  dueReviews
+                    ? "Você tem conceitos para revisar. Acesse Revisão espaçada."
                     : "Seu próximo aprendizado está a um desafio de distância.",
                 )
               }

@@ -61,31 +61,63 @@ export function weaknesses(history) {
     .sort((a, b) => a.accuracy - b.accuracy);
 }
 
+const REVIEW_INTERVALS = [1, 3, 7, 14, 30];
+const DAY_MS = 86400000;
+const conceptKey = (topic, concept) => JSON.stringify([normalize(topic), normalize(concept)]);
+
 export function reviewSchedule(history, now = Date.now()) {
-  const latest = new Map();
-  for (const session of [...history].reverse()) {
-    if (!session.finished) continue;
+  const concepts = new Map();
+  const seenSessions = new Set();
+  const sessions = [...history].filter(s => s.finished).sort((a, b) => a.finished - b.finished);
+  for (const session of sessions) {
+    if (seenSessions.has(session.id)) continue;
+    seenSessions.add(session.id);
+    // One attempt per concept per session: a correct answer cannot hide an error.
+    const attempts = new Map();
     for (const answer of session.answers) {
-      const key = `${session.topic}::${answer.question.concept}`;
-      const previous = latest.get(key);
-      const success = answer.score >= 0.8;
-      const interval = success
-        ? Math.min(30, previous?.interval ? previous.interval * 2 : 3)
-        : 1;
-      latest.set(key, {
-        topic: session.topic,
+      const key = conceptKey(session.topic, answer.question.concept);
+      const previous = attempts.get(key);
+      attempts.set(key, {
         concept: answer.question.concept,
+        score: Math.min(previous?.score ?? 1, answer.score),
+      });
+    }
+    for (const [key, attempt] of attempts) {
+      const previous = concepts.get(key);
+      if (!previous && attempt.score === 1) continue;
+      const failed = attempt.score < 1;
+      const advance = previous && session.finished >= previous.dueAt;
+      const step = failed ? 0 : advance ? Math.min(previous.step + 1, REVIEW_INTERVALS.length - 1) : previous.step;
+      const interval = REVIEW_INTERVALS[step];
+      concepts.set(key, {
+        topic: session.topic,
+        concept: attempt.concept,
+        step,
         interval,
-        dueAt: session.finished + interval * 86400000,
-        lastScore: answer.score,
+        dueAt: failed || advance ? session.finished + interval * DAY_MS : previous.dueAt,
+        lastScore: attempt.score,
+        lapses: (previous?.lapses || 0) + Number(failed),
+        attempts: (previous?.attempts || 0) + 1,
       });
     }
   }
-  return [...latest.values()]
-    .sort((a, b) => a.dueAt - b.dueAt)
-    .map((item) => ({
-      ...item,
-      due: item.dueAt <= now,
-      daysUntil: Math.ceil((item.dueAt - now) / 86400000),
-    }));
+  return [...concepts.values()]
+    .sort((a, b) => a.dueAt - b.dueAt || a.lastScore - b.lastScore)
+    .map(item => ({ ...item, due: item.dueAt <= now, daysUntil: Math.ceil((item.dueAt - now) / DAY_MS) }));
+}
+
+export function reviewQuestions(history, topic, concept, limit = 5) {
+  const key = conceptKey(topic, concept);
+  const questions = new Map();
+  for (const session of [...history].filter(s => s.finished).sort((a, b) => b.finished - a.finished)) {
+    for (const answer of session.answers) {
+      if (conceptKey(session.topic, answer.question.concept) !== key) continue;
+      const prompt = normalize(answer.question.prompt);
+      if (!questions.has(prompt)) questions.set(prompt, answer);
+    }
+  }
+  return [...questions.values()]
+    .sort((a, b) => a.score - b.score)
+    .slice(0, limit)
+    .map(answer => structuredClone(answer.question));
 }
