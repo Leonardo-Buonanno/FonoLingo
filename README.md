@@ -1,1 +1,19 @@
+# FonoLingo
 
+## Recuperação de senha
+
+No login, selecione **Esqueci minha senha**, informe o e-mail cadastrado e abra o link recebido para escolher uma nova senha. O link expira em 30 minutos, só funciona uma vez e encerra as sessões antigas. O progresso da conta é preservado.
+
+Configure no servidor local (`.env`) ou nas variáveis de ambiente do Netlify:
+
+- `APP_ORIGIN`: endereço público do aplicativo, por exemplo `https://fonolingo.netlify.app` (local: `http://localhost:5188`).
+- `RESEND_API_KEY`: chave do Resend, somente no servidor.
+- `RECOVERY_EMAIL_FROM`: remetente autorizado de um domínio verificado no Resend.
+
+O envio usa a [API oficial do Resend](https://resend.com/docs/api-reference/emails/send-email). No Netlify, publique novamente após configurar as variáveis. Sem configuração, a tela informa que o envio está indisponível. Falhas do provedor são registradas como `password_recovery_delivery_failed`, sem expor tokens ou revelar se o e-mail existe. Solicitações para a mesma conta têm intervalo mínimo de um minuto.
+
+Execute `npm run build` para validar a aplicação e `node --test tests/*.test.mjs` (Node 22.15+ ou 24+) para testar a recuperação em um banco temporário, a função Netlify com armazenamento simulado e o envio com provedor simulado.
+
+## Contas independentes
+
+O cadastro aceita vários e-mails, com progresso, sessões e limite diário de IA por conta. No Netlify, a conta anterior permanece em `primary-user`, preservando seu ID, progresso e acessos existentes. Novas contas ficam em `users/<hash do e-mail normalizado>`; índices de sessão e recuperação apontam para a conta correspondente. E-mails repetidos são recusados atomicamente.

@@ -16,6 +16,7 @@ import {
   Achievements,
 } from "./pages/Journey";
 import { Profile, Login } from "./pages/Profile";
+import { PasswordRecovery } from "./pages/PasswordRecovery";
 import { Library } from "./pages/Library";
 import { reviewSchedule } from "../shared/scoring.mjs";
 
@@ -199,6 +200,8 @@ export default function App() {
           </div>
         ) : (
           <Routes>
+            <Route path="/esqueci-minha-senha" element={<PasswordRecovery key="forgot" />} />
+            <Route path="/redefinir-senha" element={<PasswordRecovery key="reset" reset />} />
             <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
             <Route path="*" element={user ? (
               <Routes>

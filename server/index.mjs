@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import { toProviderSchema } from "./ai-schema.mjs";
+import { recoveryEmail, recoveryPassword, recoveryMessage, invalidRecovery, recoveryHash, newRecovery, recoveryConfigured, sendRecovery } from "./password-recovery.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hotspotLibrary = JSON.parse(
@@ -29,6 +30,7 @@ db.exec(
   "PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, name TEXT, password TEXT, salt TEXT, state TEXT); CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id INTEGER, expires INTEGER); CREATE TABLE IF NOT EXISTS ai_usage (usage_key TEXT, day TEXT, calls INTEGER DEFAULT 0, PRIMARY KEY(usage_key,day));",
 );
 const app = express();
+db.exec("CREATE TABLE IF NOT EXISTS password_resets (user_id INTEGER PRIMARY KEY, token_hash TEXT, expires INTEGER, requested INTEGER)");
 app.disable("x-powered-by");
 app.use(express.json({ limit: "2mb" }));
 app.use("/api", (req, res, next) => {
@@ -93,8 +95,8 @@ function login(res, id) {
 app.get("/api/status", (_req, res) =>
   res.json({
     ai: !!process.env.GEMINI_API_KEY,
-    setupRequired:
-      db.prepare("SELECT COUNT(*) AS total FROM users").get().total === 0,
+    setupRequired: false,
+    registrationOpen: true,
     model: process.env.GEMINI_API_KEY
       ? process.env.GEMINI_MODEL || "gemini-3.5-flash"
       : null,
@@ -141,6 +143,45 @@ const credentials = z.object({
   password: z.string().min(8).max(128),
   name: z.string().trim().min(2).max(60).optional(),
 });
+app.post("/api/auth/forgot-password", async (req, res) => {
+  const parsed = recoveryEmail.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Informe um e-mail válido." });
+  if (!recoveryConfigured()) return res.status(503).json({ error: "A recuperação por e-mail ainda não está configurada. Contate o administrador." });
+  const user = db.prepare("SELECT id,email FROM users WHERE email=?").get(parsed.data.email.toLowerCase());
+  if (user) {
+    const previous = db.prepare("SELECT requested FROM password_resets WHERE user_id=?").get(user.id);
+    if (!previous || previous.requested < Date.now() - 60000) {
+      const reset = newRecovery();
+      db.prepare("INSERT OR REPLACE INTO password_resets VALUES (?,?,?,?)").run(user.id, reset.hash, reset.expires, Date.now());
+      try { await sendRecovery(user.email, reset.token); }
+      catch {
+        db.prepare("DELETE FROM password_resets WHERE user_id=? AND token_hash=?").run(user.id, reset.hash);
+        console.error("password_recovery_delivery_failed");
+      }
+    }
+  }
+  return res.json({ message: recoveryMessage });
+});
+app.post("/api/auth/reset-password", (req, res) => {
+  const parsed = recoveryPassword.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Use um link válido e uma senha com 8 a 128 caracteres." });
+  const tokenHash = recoveryHash(parsed.data.token);
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const reset = db.prepare("SELECT * FROM password_resets WHERE token_hash=? AND expires>?").get(tokenHash, Date.now());
+    if (!reset) {
+      db.exec("ROLLBACK");
+      return res.status(400).json({ error: invalidRecovery });
+    }
+    const salt = randomBytes(16).toString("hex");
+    db.prepare("UPDATE users SET password=?,salt=? WHERE id=?").run(scryptSync(parsed.data.password, salt, 64).toString("hex"), salt, reset.user_id);
+    db.prepare("DELETE FROM sessions WHERE user_id=?").run(reset.user_id);
+    db.prepare("DELETE FROM password_resets WHERE user_id=?").run(reset.user_id);
+    db.exec("COMMIT");
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+  res.clearCookie("fl_session", { path: "/" });
+  return res.json({ ok: true });
+});
 app.post("/api/auth/:action", (req, res) => {
   const input = credentials.safeParse(req.body);
   if (!input.success)
@@ -151,11 +192,6 @@ app.post("/api/auth/:action", (req, res) => {
   const address = email.toLowerCase();
   if (req.params.action === "register") {
     if (!name) return res.status(400).json({ error: "Informe seu nome." });
-    const existingUsers = db.prepare("SELECT COUNT(*) AS total FROM users").get().total;
-    if (existingUsers > 0)
-      return res.status(403).json({
-        error: "Esta instalação já possui uma conta. Entre com a conta existente.",
-      });
     const salt = randomBytes(16).toString("hex");
     try {
       const result = db
@@ -226,6 +262,7 @@ app.put("/api/password", (req, res) => {
     user.id,
   );
   db.prepare("DELETE FROM sessions WHERE user_id=?").run(user.id);
+  db.prepare("DELETE FROM password_resets WHERE user_id=?").run(user.id);
   login(res, user.id);
   res.json({ ok: true });
 });

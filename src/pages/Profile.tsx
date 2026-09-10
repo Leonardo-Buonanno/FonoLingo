@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -337,6 +337,7 @@ export function Login() {
         {register && (
           <small>Use pelo menos 8 caracteres.</small>
         )}
+        {!register && <Link className="text-link" to="/esqueci-minha-senha" state={{ email }}>Esqueci minha senha</Link>}
         {error && (
           <p className="error-message" role="alert">
             {error}
