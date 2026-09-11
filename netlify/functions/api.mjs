@@ -1,3 +1,4 @@
+import { AI_TIMEOUT_MS, aiTimeoutMessage, thinkingConfig, generateWithFallback } from "../../server/ai-runtime.mjs";
 import { equivalentReviewInstruction, validateEquivalentReview } from "../../server/review-generation.mjs";
 import { getStore } from "@netlify/blobs";
 import { GoogleGenAI } from "@google/genai";
@@ -210,7 +211,7 @@ function aiClient() {
   return process.env.GEMINI_API_KEY
     ? new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
-        httpOptions: { timeout: 50_000 },
+        httpOptions: { timeout: AI_TIMEOUT_MS, retryOptions: { attempts: 1 } },
       })
     : null;
 }
@@ -223,20 +224,25 @@ async function generate(prompt, schema) {
     delete properties.image;
     delete properties.hotspot;
   }
-  const result = await aiClient().models.generateContent({
-    model: process.env.GEMINI_MODEL || "gemini-3.5-flash",
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+  const result = await generateWithFallback((selectedModel, signal) => aiClient().models.generateContent({
+    model: selectedModel,
     contents: prompt,
     config: {
       responseMimeType: "application/json",
       responseJsonSchema: providerSchema,
+      ...thinkingConfig(selectedModel),
+      abortSignal: signal,
     },
-  });
+  }), model);
   return schema.parse(JSON.parse(result.text));
 }
 
 function generationProblem(error) {
   const status = Number(error?.status || error?.code);
   const message = String(error?.message || "");
+  if (/AI_TIMEOUT|abort|timeout|timed out|deadline/i.test(message) || error?.name === "AbortError")
+    return [504, aiTimeoutMessage];
   if (status === 429 || /quota|rate.?limit/i.test(message))
     return [429, "O limite temporário do provedor foi atingido. Aguarde um minuto e tente novamente."];
   if (status === 503 || /high demand|unavailable|overload/i.test(message))

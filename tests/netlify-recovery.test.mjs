@@ -18,7 +18,7 @@ test("Netlify recovery sends once, hides unknown accounts and atomically consume
   };
   const hooks = registerHooks({
     resolve(specifier, context, next) {
-      if (specifier === "@google/genai") return { url: "data:text/javascript,export class GoogleGenAI { models = { generateContent: async () => ({ text: JSON.stringify(globalThis.__reviewTestGeneration) }) }; }", shortCircuit: true };
+      if (specifier === "@google/genai") return { url: "data:text/javascript,export class GoogleGenAI { models = { generateContent: async () => { if (globalThis.__reviewTestError) throw globalThis.__reviewTestError; return { text: JSON.stringify(globalThis.__reviewTestGeneration) }; } }; }", shortCircuit: true };
       if (specifier === "@netlify/blobs") return { url: "data:text/javascript,export const getStore = () => globalThis.__recoveryTestStore;", shortCircuit: true };
       return next(specifier, context);
     },
@@ -121,11 +121,16 @@ test("Netlify recovery sends once, hides unknown accounts and atomically consume
     globalThis.__reviewTestGeneration.questions[0].prompt = "Como perceber um som?";
     globalThis.__reviewTestGeneration.questions[0].concept = "Audição";
     assert.equal((await call("generate", config, login.cookie)).status, 502);
+    globalThis.__reviewTestError = new Error("AI_TIMEOUT");
+    const timedOut = await call("generate", config, login.cookie);
+    assert.equal(timedOut.status, 504);
+    assert.match(timedOut.body.error, /demorou além do prazo/);
   } finally {
     globalThis.fetch = originalFetch;
     process.env = previousEnv;
     hooks.deregister();
     delete globalThis.__recoveryTestStore;
     delete globalThis.__reviewTestGeneration;
+    delete globalThis.__reviewTestError;
   }
 });

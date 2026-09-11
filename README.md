@@ -25,3 +25,7 @@ Erros e respostas parciais em sessões concluídas agendam o conceito para 1 dia
 A revisão oferece 5 perguntas novas sobre o mesmo conceito, geradas por IA, com exclusão de até 60 enunciados anteriores. O servidor valida os conceitos e rejeita enunciados repetidos após normalização; equivalência semântica depende da geração. A opção de praticar até 5 questões anteriores permanece disponível, inclusive quando a geração falha. Respostas abertas usam a avaliação existente ou autoavaliação.
 
 Os indicadores mostram conceitos recuperados após dois acertos em sessões a partir do vencimento desde a última dificuldade. Erros recorrentes são dificuldades em pelo menos duas sessões no histórico, sem recuperação atual. Uma nova dificuldade remove o estado recuperado. Todos os indicadores usam o histórico salvo, incluindo autoavaliações.
+
+## Prazo da IA no Netlify
+
+As chamadas de IA têm um orçamento total de 23 segundos, abaixo do limite de execução de 30 segundos observado na instalação. Gemini 3 usa thinking LOW. Em timeout ou erro temporário do provedor, a chamada usa o prazo restante com `GEMINI_FALLBACK_MODEL` (padrão `gemini-3.1-flash-lite`). Erros de autenticação e cota não acionam contingência. Se ambos demorarem, a API retorna JSON com mensagem de prazo excedido, preservando o progresso.

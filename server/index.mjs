@@ -1,3 +1,4 @@
+import { AI_TIMEOUT_MS, aiTimeoutMessage, thinkingConfig, generateWithFallback } from "./ai-runtime.mjs";
 import { equivalentReviewInstruction, validateEquivalentReview } from "./review-generation.mjs";
 import "dotenv/config";
 import express from "express";
@@ -356,7 +357,7 @@ const generationSchema = z.object({
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: { timeout: 60000 },
+      httpOptions: { timeout: AI_TIMEOUT_MS, retryOptions: { attempts: 1 } },
     })
   : null;
 async function generate(prompt, schema) {
@@ -369,14 +370,17 @@ async function generate(prompt, schema) {
     delete providerSchema.properties.questions.items.properties.image;
     delete providerSchema.properties.questions.items.properties.hotspot;
   }
-  const result = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || "gemini-3.5-flash",
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+  const result = await generateWithFallback((selectedModel, signal) => ai.models.generateContent({
+    model: selectedModel,
     contents: prompt,
     config: {
       responseMimeType: "application/json",
       responseJsonSchema: providerSchema,
+      ...thinkingConfig(selectedModel),
+      abortSignal: signal,
     },
-  });
+  }), model);
   return schema.parse(JSON.parse(result.text));
 }
 const wait = (milliseconds) =>
@@ -384,6 +388,8 @@ const wait = (milliseconds) =>
 function generationProblem(error) {
   const status = Number(error?.status || error?.code);
   const message = String(error?.message || "");
+  if (/AI_TIMEOUT|abort|timeout|timed out|deadline/i.test(message) || error?.name === "AbortError")
+    return { status: 504, message: aiTimeoutMessage };
   if (status === 429 || /quota|rate.?limit/i.test(message))
     return {
       status: 429,
